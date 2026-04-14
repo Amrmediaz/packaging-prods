@@ -1,0 +1,67 @@
+  const styles = {
+  container: {
+    minHeight: '100vh',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#0f172a',
+  },
+  card: {
+    backgroundColor: '#1e293b',
+    padding: '40px',
+    borderRadius: '16px',
+    width: '100%',
+    maxWidth: '400px',
+    boxShadow: '0 25px 50px rgba(0,0,0,0.4)',
+  },
+  title: {
+    color: '#f1f5f9',
+    fontSize: '28px',
+    marginBottom: '4px',
+  },
+  subtitle: {
+    color: '#94a3b8',
+    marginBottom: '32px',
+  },
+  inputGroup: {
+    marginBottom: '20px',
+  },
+  label: {
+    display: 'block',
+    color: '#94a3b8',
+    marginBottom: '8px',
+    fontSize: '14px',
+  },
+  input: {
+    width: '100%',
+    padding: '12px 16px',
+    borderRadius: '8px',
+    border: '1px solid #334155',
+    backgroundColor: '#0f172a',
+    color: '#f1f5f9',
+    fontSize: '15px',
+    outline: 'none',
+    boxSizing: 'border-box',
+  },
+  button: {
+    width: '100%',
+    padding: '13px',
+    marginTop: '8px',
+    borderRadius: '8px',
+    border: 'none',
+    backgroundColor: '#6366f1',
+    color: '#fff',
+    fontSize: '16px',
+    fontWeight: 'bold',
+    cursor: 'pointer',
+  },
+  error: {
+  backgroundColor: '#450a0a',
+  color: '#fca5a5',
+  padding: '12px 16px',
+  borderRadius: '8px',
+  marginBottom: '20px',
+  fontSize: '14px',
+},
+};
+export default styles;
