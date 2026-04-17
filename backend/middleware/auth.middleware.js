@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
+import Role from '../models/Role.js';
 
 export const protect = async (req, res, next) => {
   try {
@@ -52,14 +53,34 @@ export const protect = async (req, res, next) => {
 };
 
 // Role based access control
-export const authorize = (...roles) => {
-  return (req, res, next) => {
-    if (!roles.includes(req.user.role)) {
+export const authorize = (module, action) => {
+  return async (req, res, next) => {
+    try {
+      // Find the role document
+      const roleData = await Role.findOne({ name: req.user.role });
+      
+      if (!roleData) {
+        return res.status(403).json({ success: false, message: "Role not found" });
+      }
+
+      // 1. Super Admin always has access (The "Bypass")
+      if (roleData.name === 'Super Admin') return next();
+
+      // 2. FIXED: Access the nested permission
+      // Instead of `${module}_${action}`, we access roleData.permissions[module][action]
+      // We use optional chaining (?.) to prevent crashes if a module is missing
+      if (roleData.permissions?.[module]?.[action] === true) {
+        return next();
+      }
+
+      // 3. Deny access if permission is false or missing
       return res.status(403).json({
         success: false,
-        message: `Role '${req.user.role}' is not authorized`,
+        message: `You don't have permission to ${action} in ${module}`
       });
+    } catch (error) {
+      console.error('Authorization Error:', error);
+      res.status(500).json({ success: false, message: "Server error" });
     }
-    next();
   };
 };

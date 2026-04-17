@@ -5,11 +5,12 @@ import ProtectedRoute from './ProtectedRoute';
 import PublicRoute from './PublicRoute';
 import AdminLayout from '../layouts/AdminLayout';
 import { ROUTES } from '../utils/constants';
+import RolesPermissions from '../pages/roles&permissions/RolesPermissions';
 
 // Lazy loading pages
 const Login = lazy(() => import('../pages/login/Login'));
 const Dashboard = lazy(() => import('../pages/dashboard/Dashboard'));
-const ProductionLines = lazy(() => import('../pages/production_lines/Production_Lines'));
+const Orders = lazy(() => import('../pages/orders/orders'));
 const Users = lazy(() => import('../pages/users/Users'));
 
 // مكون التحميل البسيط
@@ -28,10 +29,13 @@ function AppRoutes() {
       <AuthProvider>
         <Suspense fallback={<PageLoader />}>
           <Routes>
-            
-            {/* 1. صفحة تسجيل الدخول */}
+
+            {/* 1. Redirect root to login */}
+            <Route path="/" element={<Navigate to="/login" replace />} />
+
+            {/* 2. صفحة تسجيل الدخول */}
             <Route
-              path={ROUTES.LOGIN || '/'}
+              path={ROUTES.LOGIN}
               element={
                 <PublicRoute>
                   <Login />
@@ -39,9 +43,9 @@ function AppRoutes() {
               }
             />
 
-            {/* 2. مسار الداشبورد */}
+            {/* 3. مسار الداشبورد */}
             <Route
-              path={ROUTES.DASHBOARD }
+              path={ROUTES.DASHBOARD}
               element={
                 <ProtectedRoute>
                   <AdminLayout>
@@ -51,19 +55,31 @@ function AppRoutes() {
               }
             />
 
-            {/* 3. مسار خطوط الإنتاج - مكتوب يدوياً للتأكد من الربط */}
-            <Route
-              path={ROUTES.PRODUCTION || '/production'}
+             <Route
+              path={ROUTES.RolesPermissions}
               element={
                 <ProtectedRoute>
                   <AdminLayout>
-                    <ProductionLines />
+                    <RolesPermissions />
                   </AdminLayout>
                 </ProtectedRoute>
               }
             />
+
+         
+ <Route
+              path={ROUTES.Orders}
+              element={
+                <ProtectedRoute>
+                  <AdminLayout>
+                    <Orders />
+                  </AdminLayout>
+                </ProtectedRoute>
+              }
+            />
+            {/* 5. مسار المستخدمين */}
             <Route
-            path={ROUTES.USERS || '/users'}
+              path={ROUTES.USERS}
               element={
                 <ProtectedRoute>
                   <AdminLayout>
@@ -73,21 +89,20 @@ function AppRoutes() {
               }
             />
 
-            {/* 4. صفحة اختبار (لو ظهرت لك يعني المسار شغال بس الصفحة فيها مشكلة) */}
-            <Route 
-              path="/test" 
-              element={<div style={{color: 'white', padding: '50px'}}>Test Route is Working!</div>} 
+            {/* 6. صفحة اختبار */}
+            <Route
+              path="/test"
+              element={<div style={{ color: 'white', padding: '50px' }}>Test Route is Working!</div>}
             />
 
-            {/* 5. التعامل مع أي مسار غير معروف */}
-            {/* غيرنا التوجيه ليكون واضحاً لو المسار غير موجود */}
+            {/* 7. التعامل مع أي مسار غير معروف */}
             <Route
               path="*"
               element={
                 <div style={styles.errorPage}>
-                  <h1 style={{color: '#fff'}}>404 - Page Not Found</h1>
-                  <p style={{color: '#94a3b8'}}>المسار الذي تحاول الوصول إليه غير موجود.</p>
-                  <button 
+                  <h1 style={{ color: '#fff' }}>404 - Page Not Found</h1>
+                  <p style={{ color: '#94a3b8' }}>المسار الذي تحاول الوصول إليه غير موجود.</p>
+                  <button
                     onClick={() => window.location.href = ROUTES.DASHBOARD}
                     style={styles.backBtn}
                   >

@@ -24,11 +24,17 @@ const userSchema = new mongoose.Schema(
       minlength: [6, 'Password must be at least 6 characters'],
       select: false, // never return password in queries
     },
-    role: {
-      type: String,
-      enum: ['admin', 'manager', 'viewer'],
-      default: 'viewer',
+   role: {
+  type: String,
+  default: 'viewer',
+  validate: {
+    validator: async function(value) {
+      const Role = mongoose.model('Role');
+      const role = await Role.findOne({ name: value });
+      return !!role;
     },
+    message: (props) => `${props.value} is not a valid role`
+  }},
     isActive: {
       type: Boolean,
       default: true,

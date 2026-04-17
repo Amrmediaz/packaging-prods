@@ -11,11 +11,11 @@ const router = express.Router();
 
 // All routes are protected + admin only
 router.use(protect);
-router.use(authorize('admin'));
 
-router.get('/', getUsers);
-router.post('/', createUser);
-router.put('/:id', updateUser);
-router.delete('/:id', deleteUser);
+
+router.get('/',    authorize('users', 'view'),   getUsers);
+router.post('/',   authorize('users', 'create'), createUser);
+router.delete('/:id', authorize('users', 'delete'), deleteUser);
+router.put('/:id', authorize('users', 'edit'), updateUser);
 
 export default router;

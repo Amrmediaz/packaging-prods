@@ -1,6 +1,7 @@
 const styles = {
   container: {
     padding: '0',
+    margin: '15px',
   },
   header: {
     display: 'flex',

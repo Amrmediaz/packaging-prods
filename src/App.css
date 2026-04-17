@@ -1,38 +1,37 @@
 .App {
   text-align: center;
-}
-
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+  background-color: #f9fbfb; /* Very light teal-tinted background */
 }
 
 .App-header {
-  background-color: #282c34;
+  /* Changed from dark gray to white/light for a clean admin look */
+  background-color: #ffffff; 
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   font-size: calc(10px + 2vmin);
-  color: white;
+  /* Darker text for readability on light background */
+  color: #2d3436; 
+  border-bottom: 3px solid #00b48d; /* PackN Teal accent line */
 }
 
 .App-link {
-  color: #61dafb;
+  /* The official PackN teal color */
+  color: #00b48d; 
+  text-decoration: none;
+  font-weight: bold;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
+.App-link:hover {
+  color: #008a6d; /* Slightly darker teal for hover state */
+  text-decoration: underline;
+}
+
+/* Optional: Update the spin animation to feel more professional */
+@media (prefers-reduced-motion: no-preference) {
+  .App-logo {
+    animation: App-logo-spin infinite 30s linear;
   }
 }

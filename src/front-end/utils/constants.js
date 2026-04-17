@@ -1,3 +1,5 @@
+import RolesPermissions from "../pages/roles&permissions/RolesPermissions";
+
 // App info
 export const APP_NAME = 'Admin Dashboard';
 export const APP_VERSION = '1.0.0';
@@ -9,6 +11,8 @@ export const ROUTES = {
   USERS: '/users',
   SETTINGS: '/settings',
   PRODUCTION: '/production',
+  RolesPermissions : '/roles-permissions' ,
+  Orders: '/orders',
 };
 
 // Local storage keys

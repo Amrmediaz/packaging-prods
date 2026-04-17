@@ -7,9 +7,15 @@ import mongoSanitize from 'express-mongo-sanitize';
 import connectDB from './config/db.js';
 import authRoutes from './routes/auth.routes.js';
 import usersRoutes from './routes/users.routes.js';
+import roleRoutes from './routes/roles.routes.js';
+import dashboardRoutes from './routes/dashboard.routes.js';
+import mongoose from 'mongoose';
+
 console.log('🔵 Server starting...');
-// Load env variables first
-dotenv.config();
+const env = process.env.NODE_ENV || 'development';
+// dotenv.config({ path: `.env.${env}` });
+dotenv.config({ path: '/Users/macbook/Downloads/pacin/packin/.env.development' });
+
 
 // Connect to database
 connectDB();
@@ -21,7 +27,7 @@ const app = express();
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 // Helmet - sets secure HTTP headers automatically
-app.use(helmet());
+
 
 // Rate limiting - prevent brute force attacks
 const limiter = rateLimit({
@@ -54,6 +60,8 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
+
+app.use(helmet());
 // Body parser with size limit
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
@@ -67,6 +75,8 @@ app.use(mongoSanitize());
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);
+app.use('/api/roles', roleRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 // Health check
 app.get('/api/health', (req, res) => {
   res.status(200).json({
@@ -100,8 +110,10 @@ app.use((err, req, res, next) => {
 // Start Server
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
+const PORT = 3000;
+
+// Adding '0.0.0.0' is the key for cloud deployments (AWS, DigitalOcean, etc.)
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Server is globally accessible on port ${PORT}`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV}`);
 });

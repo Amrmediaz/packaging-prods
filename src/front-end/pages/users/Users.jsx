@@ -1,16 +1,20 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import {
   getUsersRequest,
   createUserRequest,
   deleteUserRequest,
   updateUserRequest,
-} from '../../api/users.api';
+} from '../../api/users.api.js';
+import { getRolesRequest } from '../../api/role.ap.js';
 import styles from './styles.js';
 
+// Expanded role colors to include your new Super Admin
 const roleColors = {
-  admin:   { bg: '#1e1b4b', color: '#a5b4fc' },
-  manager: { bg: '#0c4a6e', color: '#7dd3fc' },
-  viewer:  { bg: '#064e3b', color: '#6ee7b7' },
+  'Super Admin': { bg: '#4c1d95', color: '#ede9fe' },
+  admin:         { bg: '#1e1b4b', color: '#a5b4fc' },
+  manager:       { bg: '#0c4a6e', color: '#7dd3fc' },
+  viewer:        { bg: '#064e3b', color: '#6ee7b7' },
 };
 
 const emptyForm = {
@@ -21,6 +25,9 @@ const emptyForm = {
 };
 
 function Users() {
+  // 1. Hook into AuthContext for dynamic permission checking
+  const { can } = useAuth();
+  
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -29,10 +36,16 @@ function Users() {
   const [form, setForm] = useState(emptyForm);
   const [formError, setFormError] = useState('');
   const [formLoading, setFormLoading] = useState(false);
+  const [roles, setRoles] = useState([]);
 
-  // Fetch users on page load
+  // Permission shortcuts for cleaner JSX
+  const canCreate = can('users', 'create');
+  const canEdit   = can('users', 'edit');
+  const canDelete = can('users', 'delete');
+
   useEffect(() => {
     fetchUsers();
+    fetchRoles();
   }, []);
 
   const fetchUsers = async () => {
@@ -41,9 +54,18 @@ function Users() {
       const data = await getUsersRequest();
       setUsers(data.users);
     } catch (err) {
-      setError('Failed to load users');
+      setError('Failed to load users. You might not have permission.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchRoles = async () => {
+    try {
+      const data = await getRolesRequest();
+      setRoles(data);
+    } catch (error) {
+      console.error('Failed to fetch roles:', error);
     }
   };
 
@@ -81,17 +103,8 @@ function Users() {
     e.preventDefault();
     setFormError('');
 
-    // Validate
     if (!form.name || !form.email) {
       setFormError('Name and email are required');
-      return;
-    }
-    if (!editingUser && !form.password) {
-      setFormError('Password is required');
-      return;
-    }
-    if (!editingUser && form.password.length < 6) {
-      setFormError('Password must be at least 6 characters');
       return;
     }
 
@@ -99,17 +112,13 @@ function Users() {
 
     try {
       if (editingUser) {
-        // Update
         const updated = await updateUserRequest(editingUser._id, {
           name: form.name,
           email: form.email,
           role: form.role,
         });
-        setUsers(users.map(u =>
-          u._id === editingUser._id ? updated.user : u
-        ));
+        setUsers(users.map(u => u._id === editingUser._id ? updated.user : u));
       } else {
-        // Create
         const created = await createUserRequest(form);
         setUsers([...users, created.user]);
       }
@@ -132,22 +141,20 @@ function Users() {
   };
 
   if (loading) {
-    return (
-      <div style={{ textAlign: 'center', padding: '60px', color: '#94a3b8' }}>
-        Loading users...
-      </div>
-    );
+    return <div style={{ textAlign: 'center', padding: '60px', color: '#94a3b8' }}>Loading users...</div>;
   }
 
   return (
     <div style={styles.container}>
-
       {/* Header */}
       <div style={styles.header}>
         <h1 style={styles.title}>Users</h1>
-        <button style={styles.addBtn} onClick={handleOpenAdd}>
-          + Add User
-        </button>
+        {/* DYNAMIC VIEW: Hide 'Add User' button if unauthorized */}
+        {canCreate && (
+          <button style={styles.addBtn} onClick={handleOpenAdd}>
+            + Add User
+          </button>
+        )}
       </div>
 
       {error && <div style={styles.error}>{error}</div>}
@@ -159,13 +166,12 @@ function Users() {
           <div style={styles.tableCell}>Email</div>
           <div style={styles.tableCell}>Role</div>
           <div style={styles.tableCell}>Status</div>
-          <div style={styles.tableCell}>Actions</div>
+          {/* DYNAMIC VIEW: Only show column header if user can do actions */}
+          {(canEdit || canDelete) && <div style={styles.tableCell}>Actions</div>}
         </div>
 
         {users.length === 0 ? (
-          <div style={styles.emptyState}>
-            No users found. Add your first user!
-          </div>
+          <div style={styles.emptyState}>No users found.</div>
         ) : (
           users.map((user) => (
             <div key={user._id} style={styles.tableRow}>
@@ -189,34 +195,34 @@ function Users() {
                   {user.isActive ? 'Active' : 'Inactive'}
                 </span>
               </div>
-              <div style={styles.tableCell}>
-                <button
-                  style={{
-                    ...styles.actionBtn,
-                    backgroundColor: '#1e3a5f',
-                    color: '#60a5fa',
-                  }}
-                  onClick={() => handleOpenEdit(user)}
-                >
-                  Edit
-                </button>
-                <button
-                  style={{
-                    ...styles.actionBtn,
-                    backgroundColor: '#2d0a0a',
-                    color: '#f87171',
-                  }}
-                  onClick={() => handleDelete(user._id)}
-                >
-                  Delete
-                </button>
-              </div>
+
+              {/* DYNAMIC VIEW: Only show Action buttons user is allowed to use */}
+              {(canEdit || canDelete) && (
+                <div style={styles.tableCell}>
+                  {canEdit && (
+                    <button
+                      style={{ ...styles.actionBtn, backgroundColor: '#1e3a5f', color: '#60a5fa' }}
+                      onClick={() => handleOpenEdit(user)}
+                    >
+                      Edit
+                    </button>
+                  )}
+                  {canDelete && (
+                    <button
+                      style={{ ...styles.actionBtn, backgroundColor: '#2d0a0a', color: '#f87171' }}
+                      onClick={() => handleDelete(user._id)}
+                    >
+                      Delete
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           ))
         )}
       </div>
 
-      {/* Modal */}
+      {/* Modal - only accessible if canCreate or canEdit is true */}
       {showModal && (
         <div style={styles.overlay}>
           <div style={styles.modal}>
@@ -224,90 +230,46 @@ function Users() {
               {editingUser ? 'Edit User' : 'Add New User'}
             </h2>
 
-            {formError && (
-              <div style={styles.error}>{formError}</div>
-            )}
+            {formError && <div style={styles.error}>{formError}</div>}
 
             <form onSubmit={handleSubmit}>
               <div style={styles.inputGroup}>
                 <label style={styles.label}>Name</label>
-                <input
-                  style={styles.input}
-                  name="name"
-                  placeholder="Full name"
-                  value={form.name}
-                  onChange={handleChange}
-                />
+                <input style={styles.input} name="name" value={form.name} onChange={handleChange} />
               </div>
 
               <div style={styles.inputGroup}>
                 <label style={styles.label}>Email</label>
-                <input
-                  style={styles.input}
-                  name="email"
-                  type="email"
-                  placeholder="email@example.com"
-                  value={form.email}
-                  onChange={handleChange}
-                />
+                <input style={styles.input} name="email" type="email" value={form.email} onChange={handleChange} />
               </div>
 
               {!editingUser && (
                 <div style={styles.inputGroup}>
                   <label style={styles.label}>Password</label>
-                  <input
-                    style={styles.input}
-                    name="password"
-                    type="password"
-                    placeholder="Min 6 characters"
-                    value={form.password}
-                    onChange={handleChange}
-                  />
+                  <input style={styles.input} name="password" type="password" value={form.password} onChange={handleChange} />
                 </div>
               )}
 
               <div style={styles.inputGroup}>
                 <label style={styles.label}>Role</label>
-                <select
-                  style={styles.select}
-                  name="role"
-                  value={form.role}
-                  onChange={handleChange}
-                >
-                  <option value="viewer">Viewer</option>
-                  <option value="manager">Manager</option>
-                  <option value="admin">Admin</option>
+                <select style={styles.select} name="role" value={form.role} onChange={handleChange}>
+                  <option value="">Select a role</option>
+                  {roles.map((role) => (
+                    <option key={role.name} value={role.name}>{role.name}</option>
+                  ))}
                 </select>
               </div>
 
               <div style={styles.modalButtons}>
-                <button
-                  type="button"
-                  style={styles.cancelBtn}
-                  onClick={handleCloseModal}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  style={{
-                    ...styles.submitBtn,
-                    opacity: formLoading ? 0.7 : 1,
-                    cursor: formLoading ? 'not-allowed' : 'pointer',
-                  }}
-                  disabled={formLoading}
-                >
-                  {formLoading
-                    ? 'Saving...'
-                    : editingUser ? 'Update User' : 'Add User'
-                  }
+                <button type="button" style={styles.cancelBtn} onClick={handleCloseModal}>Cancel</button>
+                <button type="submit" style={styles.submitBtn} disabled={formLoading}>
+                  {formLoading ? 'Saving...' : editingUser ? 'Update User' : 'Add User'}
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
-
     </div>
   );
 }

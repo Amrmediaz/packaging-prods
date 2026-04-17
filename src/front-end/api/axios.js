@@ -1,8 +1,10 @@
 import axios from 'axios';
 import { STORAGE_KEYS, ROUTES, STATUS_CODES } from '../utils/constants';
-
+// http://51.20.37.99
 const api = axios.create({
-baseURL: 'http://localhost:8000/api',
+  // baseURL:"http://51.20.37.99:3000/api",
+  
+  baseURL : process.env.FRONTEND_URL? process.env.FRONTEND_URL : 'http://51.20.37.99:3000/api',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
