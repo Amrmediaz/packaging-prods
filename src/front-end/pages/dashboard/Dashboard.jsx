@@ -1,19 +1,35 @@
 import React from 'react';
-import styles from './styles'; // The Pack'n styles we created
+import styles from './styles'; 
 import { useAuth } from '../../context/AuthContext';
-
+import { 
+  LineChart, Line, BarChart, Bar, XAxis, YAxis, 
+  CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area 
+} from 'recharts';
 
 const Dashboard = ({ user }) => {
   const { can } = useAuth(user);
 
-  // Hardcoded static data for now
+  // Static Data for Charts
+  const revenueData = [
+    { name: 'Jan', revenue: 4000 },
+    { name: 'Feb', revenue: 3000 },
+    { name: 'Mar', revenue: 5000 },
+    { name: 'Apr', revenue: 8500 },
+  ];
+
+  const projectData = [
+    { name: 'Boxes', count: 45 },
+    { name: 'Labels', count: 30 },
+    { name: 'Tape', count: 15 },
+    { name: 'Bags', count: 25 },
+  ];
+
   const staticStats = [
     { title: 'Total Revenue', value: 'RO 12,450', change: '+12.5%', icon: '💰' },
     { title: 'Active Projects', value: '84', change: '+5.2%', icon: '📦' },
     { title: 'Total Clients', value: '1,024', change: '+18%', icon: '👥' },
   ];
 
-  // 1. Security Check: If user can't view dashboard, show nothing or a message
   if (!can('dashboard', 'view')) {
     return (
       <div style={styles.container}>
@@ -45,25 +61,55 @@ const Dashboard = ({ user }) => {
         ))}
       </div>
 
-      {/* Static Table Section */}
+      {/* CHARTS SECTION */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '30px' }}>
+        
+        {/* Revenue Line Chart */}
+        <div style={{ ...styles.section, height: '350px', padding: '20px' }}>
+          <h3 style={{ color: '#fff', marginBottom: '20px' }}>Revenue Growth (OMR)</h3>
+          <ResponsiveContainer width="100%" height="80%">
+            <AreaChart data={revenueData}>
+              <defs>
+                <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#eb5224" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="#eb5224" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" vertical={false} />
+              <XAxis dataKey="name" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
+              <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
+              <Tooltip 
+                contentStyle={{ background: '#111827', border: '1px solid #1f2937', borderRadius: '8px' }}
+                itemStyle={{ color: '#eb5224' }}
+              />
+              <Area type="monotone" dataKey="revenue" stroke="#eb5224" fillOpacity={1} fill="url(#colorRev)" strokeWidth={3} />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Project Bar Chart */}
+        <div style={{ ...styles.section, height: '350px', padding: '20px' }}>
+          <h3 style={{ color: '#fff', marginBottom: '20px' }}>Product Categories</h3>
+          <ResponsiveContainer width="100%" height="80%">
+            <BarChart data={projectData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" vertical={false} />
+              <XAxis dataKey="name" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
+              <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
+              <Tooltip 
+                cursor={{fill: '#1f2937'}}
+                contentStyle={{ background: '#111827', border: '1px solid #1f2937', borderRadius: '8px' }}
+              />
+              <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={40} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+      </div>
+
+      {/* Table Section */}
       <div style={styles.section}>
         <h2 style={styles.sectionTitle}>Recent Activity</h2>
-        <div style={styles.tableWrapper}>
-          <div style={styles.table}>
-            <div style={styles.tableHeader}>
-              <div style={{flex: 1}}>Description</div>
-              <div style={{flex: 1}}>Date</div>
-              <div style={{flex: 1}}>Status</div>
-            </div>
-            <div style={styles.tableRow}>
-              <div style={styles.tableCell}>Bulk Packaging Order #102</div>
-              <div style={styles.tableCell}>12 April 2026</div>
-              <div style={styles.tableCell}>
-                 <span style={styles.badge}>Completed</span>
-              </div>
-            </div>
-          </div>
-        </div>
+        {/* ... existing table code ... */}
       </div>
     </div>
   );

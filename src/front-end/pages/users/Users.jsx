@@ -112,15 +112,18 @@ function Users() {
 
     try {
       if (editingUser) {
-        const updated = await updateUserRequest(editingUser._id, {
+        const updated = await updateUserRequest(editingUser.id, {
           name: form.name,
           email: form.email,
           role: form.role,
         });
-        setUsers(users.map(u => u._id === editingUser._id ? updated.user : u));
+        setUsers(users.map(u => u.id === editingUser.id ? updated.user : u));
+               
+
       } else {
         const created = await createUserRequest(form);
         setUsers([...users, created.user]);
+         setTimeout(() => window.location.reload(), 10);
       }
       handleCloseModal();
     } catch (err) {
@@ -134,7 +137,7 @@ function Users() {
     if (!window.confirm('Are you sure you want to delete this user?')) return;
     try {
       await deleteUserRequest(id);
-      setUsers(users.filter(u => u._id !== id));
+      setUsers(users.filter(u => u.id !== id));
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to delete user');
     }
@@ -210,7 +213,7 @@ function Users() {
                   {canDelete && (
                     <button
                       style={{ ...styles.actionBtn, backgroundColor: '#2d0a0a', color: '#f87171' }}
-                      onClick={() => handleDelete(user._id)}
+                      onClick={() => handleDelete(user.id)}
                     >
                       Delete
                     </button>

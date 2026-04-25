@@ -1,144 +1,133 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import styles from './styles.js';
 import { useAuth } from '../../context/AuthContext';
-
-// Mock data representing actual Packn Oman product lines
-const activeOrders = [
-  { 
-    id: 'PKN-1001', 
-    client: 'Muscat Coffee Roasters', 
-    product: 'SOS Paper Bags (Medium)', 
-    quantity: '15,000 pcs', 
-    status: 'Printing', 
-    progress: 65,
-    delivery: '18 Apr' 
-  },
-  { 
-    id: 'PKN-1002', 
-    client: 'Omani Delights', 
-    product: 'Corrugated Gift Boxes', 
-    quantity: '1,200 pcs', 
-    status: 'Die-Cutting', 
-    progress: 30,
-    delivery: '20 Apr' 
-  },
-  { 
-    id: 'PKN-1003', 
-    client: 'Sohar Logistics', 
-    product: 'Custom Shipping Cartons', 
-    quantity: '5,000 pcs', 
-    status: 'Packing', 
-    progress: 95,
-    delivery: 'Today' 
-  },
-];
-
-const orderSummary = [
-  { label: 'Pending Orders', value: '24', icon: '📥' },
-  { label: 'In Production', value: '08', icon: '🏭' },
-  { label: 'Ready for Pickup', value: '12', icon: '✅' },
-  { label: 'Total Revenue', value: 'OMR 4.2k', icon: '💰' },
-];
+import { getOrdersRequest } from '../../api/orders.api.js';
 
 function Orders() {
   const { can } = useAuth();
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({ pending: 0, production: 0, completed: 0, total: 0 });
 
-  // Guard: If user can't even view orders, don't show the page
+  useEffect(() => {
+    fetchOrders();
+  }, []);
+
+  const fetchOrders = async () => {
+    try {
+      setLoading(true);
+      
+      // Since your API helper already returns response.data, 
+      // 'result' here is likely the array itself or the data object.
+      const result = await getOrdersRequest();
+      
+      console.log("Full API Response Payload:", result);
+
+      // Defensive check: handle both direct arrays and { orders: [] } structures
+      const data = Array.isArray(result) ? result : (result?.data || result?.orders || []);
+      
+      setOrders(data);
+      
+      // Calculate dynamic stats for the summary cards
+      setStats({
+        pending: data.filter(o => ['Pending', 'Queue'].includes(o.status)).length,
+        production: data.filter(o => ['Printing', 'Die-Cutting', 'Folding'].includes(o.status)).length,
+        completed: data.filter(o => ['Ready', 'Delivered'].includes(o.status)).length,
+        total: data.length
+      });
+    } catch (error) {
+      console.error("Fetch Error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (!can('orders', 'view')) {
     return (
-      <div style={{ padding: '60px', textAlign: 'center', color: '#94a3b8' }}>
-        <h2 style={{ color: '#fff' }}>Access Restricted</h2>
-        <p>You do not have the necessary permissions to view the Orders dashboard.</p>
+      <div style={{ padding: '80px', textAlign: 'center' }}>
+        <h2 style={{ color: '#fff' }}>Access Denied</h2>
+        <p style={{ color: '#64748b' }}>Contact your administrator for order viewing permissions.</p>
       </div>
     );
   }
 
   return (
     <div style={styles.container}>
-      <header style={{ marginBottom: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+      {/* HEADER SECTION */}
+      <header style={{ marginBottom: '40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <h1 style={{ fontSize: '26px', fontWeight: '800', margin: '0 0 5px 0', color: '#fff' }}>Orders Dashboard</h1>
-          <p style={{ color: '#64748b', margin: 0 }}>Manage and track all customer packaging orders</p>
+          <h1 style={{ fontSize: '32px', fontWeight: '900', color: '#fff', margin: 0 }}>
+            Orders <span style={{ color: '#eb5224' }}>Flow</span>
+          </h1>
+          <p style={{ color: '#64748b', fontSize: '14px', marginTop: '4px' }}>
+            Production tracking & logistics for Pack’n Oman
+          </p>
         </div>
         
-        {/* Permission Check for Creating Orders */}
-        {can('orders', 'create') && (
-          <button style={{
-            background: '#3b82f6', color: '#fff', border: 'none',
-            padding: '12px 24px', borderRadius: '10px', fontWeight: '700',
-            cursor: 'pointer', boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
-          }}>
-            + Create New Order
-          </button>
-        )}
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button onClick={fetchOrders} style={btnStyle('#1e293b')}>Refresh Data</button>
+          {can('orders', 'create') && (
+            <button style={btnStyle('#eb5224')}>+ New Order</button>
+          )}
+        </div>
       </header>
 
-      {/* Summary Cards */}
+      {/* STATS SUMMARY */}
       <div style={styles.statsGrid}>
-        {orderSummary.map((stat, i) => (
-          <div key={i} style={styles.statCard}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-              <span style={{ fontSize: '20px' }}>{stat.icon}</span>
-              <span style={{ color: '#94a3b8', fontSize: '13px', fontWeight: '600' }}>{stat.label}</span>
-            </div>
-            <div style={{ fontSize: '28px', fontWeight: '800', color: '#fff' }}>{stat.value}</div>
-          </div>
-        ))}
+        <StatCard label="In Queue" value={stats.pending} color="#eb5224" icon="📥" />
+        <StatCard label="On Factory Floor" value={stats.production} color="#3b82f6" icon="🏭" />
+        <StatCard label="Completed" value={stats.completed} color="#10b981" icon="✅" />
+        <StatCard label="Total Volume" value={stats.total} color="#8b5cf6" icon="📊" />
       </div>
 
-      {/* Main Order Table */}
-      <div style={styles.section}>
-        <h2 style={{ ...styles.sectionTitle, fontSize: '18px', marginBottom: '20px' }}>Active Production Queue</h2>
+      {/* ORDERS TABLE */}
+      <div style={{ ...styles.section, background: '#111827', borderRadius: '16px', border: '1px solid #1f2937' }}>
+        <div style={{ padding: '24px', borderBottom: '1px solid #1f2937' }}>
+          <h3 style={{ color: '#fff', margin: 0, fontSize: '18px' }}>Active Production Queue</h3>
+        </div>
+
         <div style={styles.tableWrapper}>
           <div style={styles.table}>
-            <div style={styles.tableHeader}>
-              <div style={{...styles.tableCell, flex: 0.7}}>ID</div>
-              <div style={styles.tableCell}>Client</div>
-              <div style={styles.tableCell}>Product & Specs</div>
-              <div style={styles.tableCell}>Status</div>
-              <div style={styles.tableCell}>Progress</div>
+            <div style={{ ...styles.tableHeader, background: '#1f2937', padding: '16px 24px' }}>
+              <div style={{ ...styles.tableCell, flex: 0.8, color: '#94a3b8', fontSize: '11px', fontWeight: '800' }}>ORDER ID</div>
+              <div style={{ ...styles.tableCell, color: '#94a3b8', fontSize: '11px', fontWeight: '800' }}>CLIENT</div>
+              <div style={{ ...styles.tableCell, color: '#94a3b8', fontSize: '11px', fontWeight: '800' }}>PRODUCT</div>
+              <div style={{ ...styles.tableCell, color: '#94a3b8', fontSize: '11px', fontWeight: '800' }}>STATUS</div>
+              <div style={{ ...styles.tableCell, color: '#94a3b8', fontSize: '11px', fontWeight: '800' }}>DEADLINE</div>
             </div>
 
-            {activeOrders.map((order) => (
-              <div key={order.id} style={styles.tableRow}>
-                <div style={{...styles.tableCell, flex: 0.7, color: '#475569', fontSize: '12px'}}>{order.id}</div>
-                <div style={styles.tableCell}>
-                  <div style={{ color: '#fff', fontWeight: '700' }}>{order.client}</div>
-                </div>
-                <div style={styles.tableCell}>
-                  <div style={{ fontSize: '13px' }}>{order.product}</div>
-                  <div style={{ fontSize: '11px', color: '#64748b' }}>Quantity: {order.quantity}</div>
-                </div>
-                <div style={styles.tableCell}>
-                  <span style={{ 
-                    padding: '5px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: '800',
-                    background: order.status === 'Packing' ? '#064e3b' : '#1e293b',
-                    color: order.status === 'Packing' ? '#4ade80' : '#94a3b8',
-                    textTransform: 'uppercase'
-                  }}>
-                    {order.status}
-                  </span>
-                </div>
-                <div style={styles.tableCell}>
-                  <div style={{ 
-                    width: '100%', backgroundColor: '#1e293b', 
-                    borderRadius: '10px', height: '6px', marginBottom: '6px' 
-                  }}>
-                    <div style={{ 
-                      width: `${order.progress}%`, 
-                      backgroundColor: order.progress > 90 ? '#10b981' : '#3b82f6', 
-                      height: '100%', borderRadius: '10px', transition: 'width 0.8s ease-in-out' 
-                    }} />
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
-                    <span style={{ color: '#94a3b8' }}>{order.progress}%</span>
-                    <span style={{ color: order.delivery === 'Today' ? '#f87171' : '#64748b', fontWeight: '600' }}>
-                      Due: {order.delivery}
+            {loading ? (
+              <div style={{ padding: '40px', textAlign: 'center', color: '#eb5224' }}>Loading live orders...</div>
+            ) : orders.length === 0 ? (
+              <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>No orders found in database.</div>
+            ) : (
+              orders.map((order) => (
+                <div key={order._id || order.id} style={{ ...styles.tableRow, padding: '20px 24px', borderBottom: '1px solid #1f2937' }}>
+                  <div style={{ ...styles.tableCell, flex: 0.8 }}>
+                    <span style={{ color: '#eb5224', fontFamily: 'monospace', fontWeight: 'bold' }}>
+                      {order.orderId || 'N/A'}
                     </span>
                   </div>
+                  <div style={styles.tableCell}>
+                    <div style={{ color: '#fff', fontWeight: '700' }}>{order.name  || 'Unknown'}</div>
+                    <div style={{ color: '#64748b', fontSize: '12px' }}>{order.phone || 'No Phone'}</div>
+                  </div>
+                  <div style={styles.tableCell}>
+                    <div style={{ color: '#e5e7eb', fontSize: '13px' }}>{order.product || order.service_type}</div>
+                    <div style={{ color: '#64748b', fontSize: '11px' }}>Qty: {order.quantity?.toLocaleString() || 0}</div>
+                  </div>
+                  <div style={styles.tableCell}>
+                    <StatusBadge status={order.status} />
+                  </div>
+                  <div style={styles.tableCell}>
+                    <div style={{ color: '#fff', fontWeight: '600' }}>
+                      {order.dueDate ? new Date(order.dueDate).toLocaleDateString('en-OM', { day: '2-digit', month: 'short' }) : 'TBD'}
+                    </div>
+                    <ProgressBar progress={order.progress} />
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       </div>
@@ -146,172 +135,46 @@ function Orders() {
   );
 }
 
+/* SUB-COMPONENTS */
+
+const StatCard = ({ label, value, color, icon }) => (
+  <div style={{ ...styles.statCard, borderLeft: `4px solid ${color}` }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+      <span style={{ color: '#94a3b8', fontSize: '12px', fontWeight: '800' }}>{label}</span>
+      <span>{icon}</span>
+    </div>
+    <div style={{ fontSize: '32px', fontWeight: '900', color: '#fff', marginTop: '8px' }}>{value}</div>
+  </div>
+);
+
+const StatusBadge = ({ status }) => {
+  const colors = {
+    'Pending': { bg: '#2d1a15', text: '#eb5224' },
+    'Queue': { bg: '#2d1a15', text: '#eb5224' },
+    'Ready': { bg: '#064e3b', text: '#10b981' },
+    'Delivered': { bg: '#064e3b', text: '#10b981' },
+    'default': { bg: '#1e293b', text: '#94a3b8' }
+  };
+  const theme = colors[status] || colors.default;
+  return (
+    <span style={{
+      padding: '6px 14px', borderRadius: '20px', fontSize: '10px', fontWeight: '800',
+      background: theme.bg, color: theme.text, textTransform: 'uppercase'
+    }}>
+      ● {status || 'Unknown'}
+    </span>
+  );
+};
+
+const ProgressBar = ({ progress = 0 }) => (
+  <div style={{ width: '80px', height: '4px', background: '#1f2937', borderRadius: '2px', marginTop: '6px' }}>
+    <div style={{ width: `${progress}%`, background: '#eb5224', height: '100%', borderRadius: '2px' }} />
+  </div>
+);
+
+const btnStyle = (bg) => ({
+  background: bg, color: '#fff', border: 'none', padding: '10px 20px',
+  borderRadius: '8px', fontWeight: '700', cursor: 'pointer', transition: '0.2s'
+});
+
 export default Orders;
-
-
-
-
-
-// import React, { useState, useEffect } from 'react';
-// import styles from './styles.js';
-// import { useAuth } from '../../context/AuthContext';
-// import { getOrdersRequest } from '../../api/orders.api'; // You'll need this function
-
-// function Orders() {
-//   const { can } = useAuth();
-  
-//   // State Management
-//   const [orders, setOrders] = useState([]);
-//   const [loading, setLoading] = useState(true);
-//   const [showModal, setShowModal] = useState(false);
-//   const [error, setError] = useState(null);
-
-//   // 1. Fetch Orders from API on component mount
-//   useEffect(() => {
-//     const fetchOrders = async () => {
-//       try {
-//         setLoading(true);
-//         // This calls your backend via the authorize('orders', 'view') middleware
-//         const response = await getOrdersRequest(); 
-//         setOrders(response.orders || []);
-//       } catch (err) {
-//         console.error("Failed to load orders:", err);
-//         setError("Could not load production data. Please check your connection.");
-//       } finally {
-//         setLoading(false);
-//       }
-//     };
-
-//     if (can('orders', 'view')) {
-//       fetchOrders();
-//     }
-//   }, [can]);
-
-//   // 2. Summary Logic (Derived from actual live data)
-//   const stats = [
-//     { label: 'Pending Orders', value: orders.filter(o => o.status === 'Queue').length, icon: '📥' },
-//     { label: 'In Production', value: orders.filter(o => ['Printing', 'Die-Cutting', 'Folding'].includes(o.status)).length, icon: '🏭' },
-//     { label: 'Ready/Delivered', value: orders.filter(o => ['Ready', 'Delivered'].includes(o.status)).length, icon: '✅' },
-//     { label: 'Live Jobs', value: orders.length, icon: '📊' },
-//   ];
-
-//   // Guard: Permission Check
-//   if (!can('orders', 'view')) {
-//     return (
-//       <div style={{ padding: '60px', textAlign: 'center', color: '#94a3b8' }}>
-//         <h2 style={{ color: '#fff' }}>Access Restricted</h2>
-//         <p>You do not have the necessary permissions to view the Orders dashboard.</p>
-//       </div>
-//     );
-//   }
-
-//   return (
-//     <div style={styles.container}>
-//       <header style={{ marginBottom: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-//         <div>
-//           <h1 style={{ fontSize: '26px', fontWeight: '800', margin: '0 0 5px 0', color: '#fff' }}>Orders Dashboard</h1>
-//           <p style={{ color: '#64748b', margin: 0 }}>Packn Oman Factory Live Production Queue</p>
-//         </div>
-        
-//         {can('orders', 'create') && (
-//           <button 
-//             onClick={() => setShowModal(true)}
-//             style={{
-//               background: '#3b82f6', color: '#fff', border: 'none',
-//               padding: '12px 24px', borderRadius: '10px', fontWeight: '700',
-//               cursor: 'pointer', boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
-//             }}
-//           >
-//             + Create New Order
-//           </button>
-//         )}
-//       </header>
-
-//       {/* Summary Cards */}
-//       <div style={styles.statsGrid}>
-//         {stats.map((stat, i) => (
-//           <div key={i} style={styles.statCard}>
-//             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-//               <span style={{ fontSize: '20px' }}>{stat.icon}</span>
-//               <span style={{ color: '#94a3b8', fontSize: '13px', fontWeight: '600' }}>{stat.label}</span>
-//             </div>
-//             <div style={{ fontSize: '28px', fontWeight: '800', color: '#fff' }}>{stat.value}</div>
-//           </div>
-//         ))}
-//       </div>
-
-//       {/* Main Order Table */}
-//       <div style={styles.section}>
-//         <h2 style={{ ...styles.sectionTitle, fontSize: '18px', marginBottom: '20px' }}>Active Production Queue</h2>
-        
-//         {loading ? (
-//           <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>Loading production data...</div>
-//         ) : error ? (
-//           <div style={{ padding: '40px', textAlign: 'center', color: '#ef4444' }}>{error}</div>
-//         ) : (
-//           <div style={styles.tableWrapper}>
-//             <div style={styles.table}>
-//               <div style={styles.tableHeader}>
-//                 <div style={{...styles.tableCell, flex: 0.7}}>Order ID</div>
-//                 <div style={styles.tableCell}>Client</div>
-//                 <div style={styles.tableCell}>Product & Quantity</div>
-//                 <div style={styles.tableCell}>Status</div>
-//                 <div style={styles.tableCell}>Progress</div>
-//               </div>
-
-//               {orders.length === 0 ? (
-//                 <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>No active orders found.</div>
-//               ) : (
-//                 orders.map((order) => (
-//                   <div key={order.id} style={styles.tableRow}>
-//                     <div style={{...styles.tableCell, flex: 0.7, color: '#475569', fontSize: '12px'}}>{order.orderId}</div>
-//                     <div style={styles.tableCell}>
-//                       <div style={{ color: '#fff', fontWeight: '700' }}>{order.client}</div>
-//                     </div>
-//                     <div style={styles.tableCell}>
-//                       <div style={{ fontSize: '13px' }}>{order.product}</div>
-//                       <div style={{ fontSize: '11px', color: '#64748b' }}>Qty: {order.quantity.toLocaleString()}</div>
-//                     </div>
-//                     <div style={styles.tableCell}>
-//                       <span style={{ 
-//                         padding: '5px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: '800',
-//                         background: order.status === 'Ready' || order.status === 'Packing' ? '#064e3b' : '#1e293b',
-//                         color: order.status === 'Ready' || order.status === 'Packing' ? '#4ade80' : '#94a3b8',
-//                         textTransform: 'uppercase'
-//                       }}>
-//                         {order.status}
-//                       </span>
-//                     </div>
-//                     <div style={styles.tableCell}>
-//                       <div style={{ 
-//                         width: '100%', backgroundColor: '#1e293b', 
-//                         borderRadius: '10px', height: '6px', marginBottom: '6px' 
-//                       }}>
-//                         <div style={{ 
-//                           width: `${order.progress}%`, 
-//                           backgroundColor: order.progress > 90 ? '#10b981' : '#3b82f6', 
-//                           height: '100%', borderRadius: '10px', transition: 'width 0.8s ease' 
-//                         }} />
-//                       </div>
-//                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
-//                         <span style={{ color: '#94a3b8' }}>{order.progress}%</span>
-//                         <span style={{ color: '#64748b' }}>
-//                           Due: {new Date(order.dueDate).toLocaleDateString('en-GB')}
-//                         </span>
-//                       </div>
-//                     </div>
-//                   </div>
-//                 ))
-//               )}
-//             </div>
-//           </div>
-//         )}
-//       </div>
-
-//       {/* Modal for Creating New Orders */}
-     
-//     </div>
-//   );
-// }
-
-// export default Orders;

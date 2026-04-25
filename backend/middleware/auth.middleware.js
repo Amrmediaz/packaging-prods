@@ -1,10 +1,8 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
-import Role from '../models/Role.js';
 
 export const protect = async (req, res, next) => {
   try {
-    // 1. Check if token exists
     let token;
     if (
       req.headers.authorization &&
@@ -20,11 +18,10 @@ export const protect = async (req, res, next) => {
       });
     }
 
-    // 2. Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // 3. Check if user still exists
-    const user = await User.findById(decoded.id);
+    // ✅ populate role here so req.user.role is the full role object
+    const user = await User.findById(decoded.id).populate('role');
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -32,7 +29,6 @@ export const protect = async (req, res, next) => {
       });
     }
 
-    // 4. Check if user is active
     if (!user.isActive) {
       return res.status(401).json({
         success: false,
@@ -40,8 +36,7 @@ export const protect = async (req, res, next) => {
       });
     }
 
-    // 5. Attach user to request
-    req.user = user;
+    req.user = user; // ✅ req.user.role is now the full role object
     next();
 
   } catch (error) {
@@ -52,35 +47,35 @@ export const protect = async (req, res, next) => {
   }
 };
 
-// Role based access control
+// ✅ No Role import needed — role is already populated on req.user
 export const authorize = (module, action) => {
-  return async (req, res, next) => {
+  return (req, res, next) => {
     try {
-      // Find the role document
-      const roleData = await Role.findOne({ name: req.user.role });
-      
+      const roleData = req.user.role; // ✅ already populated, no extra DB query
+
       if (!roleData) {
-        return res.status(403).json({ success: false, message: "Role not found" });
+        return res.status(403).json({
+          success: false,
+          message: 'Role not found',
+        });
       }
 
-      // 1. Super Admin always has access (The "Bypass")
+      // ✅ Super Admin bypass
       if (roleData.name === 'Super Admin') return next();
 
-      // 2. FIXED: Access the nested permission
-      // Instead of `${module}_${action}`, we access roleData.permissions[module][action]
-      // We use optional chaining (?.) to prevent crashes if a module is missing
+      // ✅ Check permission
       if (roleData.permissions?.[module]?.[action] === true) {
         return next();
       }
 
-      // 3. Deny access if permission is false or missing
       return res.status(403).json({
         success: false,
-        message: `You don't have permission to ${action} in ${module}`
+        message: `You don't have permission to ${action} in ${module}`,
       });
+
     } catch (error) {
       console.error('Authorization Error:', error);
-      res.status(500).json({ success: false, message: "Server error" });
+      res.status(500).json({ success: false, message: 'Server error' });
     }
   };
 };

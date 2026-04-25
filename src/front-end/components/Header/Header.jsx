@@ -7,7 +7,8 @@ import styles from './styles.js';
 const pageTitles = {
   '/dashboard': 'Dashboard',
   '/users': 'Users',
-  '/settings': 'Settings',
+  '/orders': 'Orders',
+  '/roles-permissions': 'Roles & Permissions',
 };
 
 function Header() {

@@ -191,7 +191,7 @@ const styles = {
     fontSize: '14px', zIndex: 2000,
   },
 };
- const T = {
+ const TComponent = {
   bg: '#0f172a',
   card: '#0f172a',
   cardHi: '#1e293b',
@@ -213,4 +213,52 @@ const styles = {
     backdropFilter: 'blur(4px)'
   }
 };
-export { styles, T, commonStyles };
+const T = {
+  bg:        '#080c14',
+  surface:   '#0d1220',
+  card:      '#111827',
+  cardHi:    '#1a2235',
+  accent:    '#4f8ef7',
+  accentGlow:'rgba(79,142,247,0.18)',
+  danger:    '#f43f5e',
+  dangerDim: 'rgba(244,63,94,0.12)',
+  success:   '#10b981',
+  warn:      '#f59e0b',
+  textMain:  '#eef2ff',
+  textSub:   '#8899b4',
+  textMute:  '#3d4f6b',
+  border:    'rgba(255,255,255,0.05)',
+  borderHi:  'rgba(79,142,247,0.35)',
+  shadow:    '0 24px 48px -12px rgba(0,0,0,0.8)',
+};
+
+const ROLE_COLORS = [
+  { value: '#4f8ef7', label: 'Blue'   },
+  { value: '#a78bfa', label: 'Violet' },
+  { value: '#10b981', label: 'Emerald'},
+  { value: '#f59e0b', label: 'Amber'  },
+  { value: '#f43f5e', label: 'Rose'   },
+  { value: '#06b6d4', label: 'Cyan'   },
+  { value: '#ec4899', label: 'Pink'   },
+  { value: '#64748b', label: 'Slate'  },
+];
+
+const inputStyle = (active) => ({
+  width: '100%', padding: '11px 14px', borderRadius: '10px',
+  border: `1px solid ${active ? T.accent + '50' : T.border}`,
+  background: T.bg, fontSize: '14px', color: T.textMain,
+  outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit',
+  transition: 'border-color 0.15s, box-shadow 0.15s',
+});
+
+const saveBtnStyle = (disabled, color, saving) => ({
+  padding: '10px 24px', borderRadius: '10px', border: 'none',
+  background: disabled ? color + '40' : color,
+  color: '#fff', fontWeight: 700,
+  cursor: disabled ? 'not-allowed' : 'pointer',
+  fontSize: '13px', fontFamily: 'inherit',
+  boxShadow: !disabled ? `0 4px 16px ${color}40` : 'none',
+  transition: 'all 0.2s',
+});
+
+export { styles, TComponent, commonStyles , T , ROLE_COLORS  , saveBtnStyle , inputStyle};

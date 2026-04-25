@@ -1,5 +1,6 @@
 import React from 'react';
-import { T, ACTIONS } from '../Roles.utils';
+import { T  } from '../styles.js';
+import { ACTIONS } from '../Roles.utils.js';
 
  const ModulePermRow = ({ module, perms, onToggle, readOnly }) => (
   <div style={{ display: 'flex', padding: '16px', borderBottom: `1px solid ${T.border}` }}>

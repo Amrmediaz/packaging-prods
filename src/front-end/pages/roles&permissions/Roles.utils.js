@@ -1,36 +1,11 @@
-const T = {
-  bg:        '#080c14',
-  surface:   '#0d1220',
-  card:      '#111827',
-  cardHi:    '#1a2235',
-  accent:    '#4f8ef7',
-  accentGlow:'rgba(79,142,247,0.18)',
-  danger:    '#f43f5e',
-  dangerDim: 'rgba(244,63,94,0.12)',
-  success:   '#10b981',
-  warn:      '#f59e0b',
-  textMain:  '#eef2ff',
-  textSub:   '#8899b4',
-  textMute:  '#3d4f6b',
-  border:    'rgba(255,255,255,0.05)',
-  borderHi:  'rgba(79,142,247,0.35)',
-  shadow:    '0 24px 48px -12px rgba(0,0,0,0.8)',
-};
+import { label } from "framer-motion/client";
+
  const ACTIONS = ['view', 'create', 'edit', 'delete'];
 
-const ROLE_COLORS = [
-  { value: '#4f8ef7', label: 'Blue'   },
-  { value: '#a78bfa', label: 'Violet' },
-  { value: '#10b981', label: 'Emerald'},
-  { value: '#f59e0b', label: 'Amber'  },
-  { value: '#f43f5e', label: 'Rose'   },
-  { value: '#06b6d4', label: 'Cyan'   },
-  { value: '#ec4899', label: 'Pink'   },
-  { value: '#64748b', label: 'Slate'  },
-];
+
 
 // ─── Module definitions with their OWN specific actions ─────────────────────
-const MODULES = [
+ const MODULES = [
   {
     key: 'dashboard',
     label: 'Dashboard',
@@ -53,6 +28,18 @@ const MODULES = [
       { key: 'cancel',  label: 'Cancel',  color: '#f43f5e', dim: 'rgba(244,63,94,0.14)'  },
     ],
   },
+  {
+    key:'products' ,
+    label:'Products' ,
+
+ icon: '🛒',
+    description: 'Products',
+    actions: [
+      { key: 'view',    label: 'View',    color: '#10b981', dim: 'rgba(16,185,129,0.14)' },
+      { key: 'create',  label: 'Create',  color: '#4f8ef7', dim: 'rgba(79,142,247,0.14)' },
+      { key: 'delete',  label: 'Delete',  color: '#f43f5e', dim: 'rgba(244,63,94,0.14)'  },
+    ],
+  },
  
   {
     key: 'users',
@@ -70,7 +57,7 @@ const MODULES = [
  
 ];
 
-const mkPerms = (all = false) =>
+ const mkPerms = (all = false) =>
   Object.fromEntries(
     MODULES.map(({ key, actions }) => [
       key,
@@ -78,9 +65,9 @@ const mkPerms = (all = false) =>
     ])
   );
 
-const totalPerms = MODULES.reduce((sum, m) => sum + m.actions.length, 0);
+ const totalPerms = MODULES.reduce((sum, m) => sum + m.actions.length, 0);
 
-function countGranted(permissions) {
+ function countGranted(permissions) {
   if (!permissions) return 0;
   return Object.entries(permissions).reduce((sum, [modKey, modVal]) => {
     if (typeof modVal !== 'object') return sum;
@@ -88,7 +75,7 @@ function countGranted(permissions) {
   }, 0);
 }
 
-function getModuleGranted(permissions, modKey) {
+ function getModuleGranted(permissions, modKey) {
   const mod = permissions?.[modKey];
   if (!mod) return 0;
   return Object.values(mod).filter(Boolean).length;
@@ -100,4 +87,16 @@ function getActionMeta(modKey, actionKey) {
 }
 
 
-export { T, ROLE_COLORS, MODULES , ACTIONS, mkPerms, countGranted, getModuleGranted, getActionMeta , totalPerms };
+
+function actionDescription(modKey, actionKey) {
+  const map = {
+    dashboard: { view: 'See analytics, KPIs, and summary cards', export: 'Download dashboard data as CSV/PDF' },
+    orders: { view: 'Browse and search all orders', create: 'Place new orders', approve: 'Authorize pending orders', cancel: 'Cancel placed orders' },
+    inventory: { view: 'Browse stock levels and items', create: 'Add new inventory items', edit: 'Update item details & pricing', delete: 'Remove items from catalog', adjust: 'Manually adjust stock quantities' },
+    users: { view: 'Browse user accounts', create: 'Add new user accounts', edit: 'Modify user details', delete: 'Deactivate or remove users', roles: 'Assign and manage roles & permissions' },
+    products : {view: 'Browse products', create: 'Add new products', delete: 'Delete products', }
+  };
+  return map[modKey]?.[actionKey] || '';
+}
+
+export {  MODULES , ACTIONS, mkPerms, countGranted, getModuleGranted, getActionMeta , totalPerms , actionDescription };

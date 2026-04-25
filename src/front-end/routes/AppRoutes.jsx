@@ -6,6 +6,7 @@ import PublicRoute from './PublicRoute';
 import AdminLayout from '../layouts/AdminLayout';
 import { ROUTES } from '../utils/constants';
 import RolesPermissions from '../pages/roles&permissions/RolesPermissions';
+import Products from '../pages/products/products.jsx';
 
 // Lazy loading pages
 const Login = lazy(() => import('../pages/login/Login'));
@@ -61,6 +62,17 @@ function AppRoutes() {
                 <ProtectedRoute>
                   <AdminLayout>
                     <RolesPermissions />
+                  </AdminLayout>
+                </ProtectedRoute>
+              }
+            />
+
+              <Route
+              path={ROUTES.Products}
+              element={
+                <ProtectedRoute>
+                  <AdminLayout>
+                    <Products />
                   </AdminLayout>
                 </ProtectedRoute>
               }

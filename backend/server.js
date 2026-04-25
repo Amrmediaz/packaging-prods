@@ -9,18 +9,30 @@ import authRoutes from './routes/auth.routes.js';
 import usersRoutes from './routes/users.routes.js';
 import roleRoutes from './routes/roles.routes.js';
 import dashboardRoutes from './routes/dashboard.routes.js';
+import orderRoutes from './routes/order.routes.js'; // Import order routes
+import productRoutes from './routes/product.routes.js' // Import product routes
 import mongoose from 'mongoose';
+import { a } from 'framer-motion/client';
 
 console.log('🔵 Server starting...');
 const env = process.env.NODE_ENV || 'development';
 // dotenv.config({ path: `.env.${env}` });
-dotenv.config({ path: '/Users/macbook/Downloads/pacin/packin/.env.development' });
+// dotenv.config({ path: '/Users/macbook/Downloads/pacin/packin/.env.development' });
+dotenv.config();
 
 
 // Connect to database
 connectDB();
 
 const app = express();
+app.use(cors({
+  origin: '*',
+  credentials: false,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
+
+// app.use(cors());
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Security Middleware
@@ -53,13 +65,7 @@ app.use('/api', limiter);
 app.use('/api/auth/login', authLimiter);
 
 // CORS - only allow our frontend
-app.use(cors({
-  origin: '*',
-  credentials: false,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-}));
-
+a
 
 app.use(helmet());
 // Body parser with size limit
@@ -77,6 +83,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/roles', roleRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/orders', orderRoutes); 
+app.use('/api/products', productRoutes);
 // Health check
 app.get('/api/health', (req, res) => {
   res.status(200).json({

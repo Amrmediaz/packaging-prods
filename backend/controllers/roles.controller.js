@@ -1,75 +1,95 @@
 // controllers/roleControllers.js
-import Role from '../models/Role.js';
-
+import RoleService  from '../../backend/servcies/role.service.js'
 
 // ─── GET ALL ROLES ─────────────────────────────────────────────────────────────
 // @route   GET /api/roles
 // @desc    Get all roles
- export const getAllRoles = async (req, res) => {
+export const getAllRoles = async (req, res) => {
   try {
-    const roles = await Role.find().sort({ createdAt: 1 }); // Oldest first
+    const roles = await roleService.findAllRoles();
     res.json(roles);
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
   }
 };
+const roleService = new RoleService();
 
-
- export const createRoles = async (req, res) => {
-  const { name, color, description, permissions } = req.body;
-
-  if (!name) {
-    return res.status(400).json({ msg: 'Please include a role name' });
-  }
-
+export const createRoles = async (req, res) => {
   try {
-    const newRole = new Role({
-      name,
-      color,
-      description,
-      permissions,
-      isBuiltIn: false // Newly created roles are never built-in
-    });
-
-    const role = await newRole.save();
-    res.status(201).json(role);
+    const role = await roleService.createRole(req.body);
+    return res.status(201).json(role);
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
+    // Map internal errors to HTTP status codes
+    switch (err.message) {
+      case 'VALIDATION_NAME_REQUIRED':
+        return res.status(400).json({ msg: 'Please include a role name' });
+      case 'VALIDATION_FORBIDDEN_NAME':
+        return res.status(403).json({ msg: 'Cannot create a role with "Super Admin" in the name' });
+      case 'VALIDATION_ALREADY_EXISTS':
+        return res.status(400).json({ msg: 'A role with this name already exists' });
+      default:
+        console.error(err);
+        return res.status(500).send('Server Error');
+    }
   }
 };
 
+// export const createRoles = async (req, res) => {
+//   const { name, color, description, permissions } = req.body;
+
+//   if (!name) {
+//     return res.status(400).json({ msg: 'Please include a role name' });
+//   }
+
+//   // Block any name that contains "super admin"
+//   if (name.trim().toLowerCase().includes('super admin')) {
+//     return res.status(403).json({ msg: 'Cannot create a role with "Super Admin" in the name' });
+//   }
+
+//   try {
+//     const existingRole = await Role.findOne({ name: { $regex: `^${name.trim()}$`, $options: 'i' } });
+//     if (existingRole) {
+//       return res.status(400).json({ msg: 'A role with this name already exists' });
+//     }
+
+//     const newRole = new Role({
+//       name: name.trim(),
+//       color,
+//       description,
+//       permissions,
+//       isBuiltIn: false
+//     });
+
+//     const role = await newRole.save();
+//     res.status(201).json(role);
+//   } catch (err) {
+//     console.error(err.message);
+//     res.status(500).send('Server Error');
+//   }
+// };
 // ─── UPDATE A ROLE ─────────────────────────────────────────────────────────────
 // @route   PUT /api/roles/:id
 // @desc    Update a role (including partial updates like inline permission changes)
- export const updateRole = async (req, res) => {
-  const { name, color, description, permissions } = req.body;
-
-  // Build temporary role object based on submitted data
-  const roleFields = {};
-  if (name) roleFields.name = name;
-  if (color) roleFields.color = color;
-  if (description) roleFields.description = description;
-  if (permissions) roleFields.permissions = permissions;
-
+export const updateRole = async (req, res) => {
   try {
-    let role = await Role.findById(req.params.id);
-
-    if (!role) return res.status(404).json({ msg: 'Role not found' });
-
-    // Update
-    role = await Role.findByIdAndUpdate(
-      req.params.id,
-      { $set: roleFields },
-      { new: true } // Return the updated document
-    );
-
-    res.json(role);
+    const updatedRole = await roleService.updateRole(req.params.id, req.body);
+    return res.json(updatedRole);
   } catch (err) {
-    console.error(err.message);
-    // Check if ID is invalid format
-    if(err.kind === 'ObjectId') return res.status(404).json({ msg: 'Role not found' });
+    // Dependency Inversion: Controller handles the "translation" of errors
+    if (err.kind === 'ObjectId' || err.message === 'NOT_FOUND') {
+      return res.status(404).json({ msg: 'Role not found' });
+    }
+    
+    if (err.message === 'FORBIDDEN_SYSTEM_ROLE') {
+      return res.status(403).json({ msg: 'System roles cannot be modified' });
+    }
+
+    if (err.message === 'DUPLICATE_NAME') {
+      return res.status(400).json({ msg: 'A role with this name already exists' });
+    }
+
+    console.error(err);
     res.status(500).send('Server Error');
   }
 };
@@ -77,23 +97,20 @@ import Role from '../models/Role.js';
 // ─── DELETE A ROLE ─────────────────────────────────────────────────────────────
 // @route   DELETE /api/roles/:id
 // @desc    Delete a role
- export const deleteRole = async (req, res) => {
+export const deleteRole = async (req, res) => {
   try {
-    const role = await Role.findById(req.params.id);
+    const deletedId = await roleService.deleteRole(req.params.id);
+    return res.json({ msg: 'Role removed', id: deletedId });
+  } catch (err) {
+    // Standardized Error Handling
+    if (err.kind === 'ObjectId' || err.message === 'NOT_FOUND') {
+      return res.status(404).json({ msg: 'Role not found' });
+    }
 
-    if (!role) return res.status(404).json({ msg: 'Role not found' });
-
-    // Prevent deletion of system roles
-    if (role.isBuiltIn) {
+    if (err.message === 'FORBIDDEN_SYSTEM_ROLE') {
       return res.status(403).json({ msg: 'System roles cannot be deleted' });
     }
 
-    await Role.findByIdAndDelete(req.params.id);
-
-    res.json({ msg: 'Role removed', id: req.params.id });
-  } catch (err) {
-    console.error(err.message);
-    if(err.kind === 'ObjectId') return res.status(404).json({ msg: 'Role not found' });
+    console.error(err);
     res.status(500).send('Server Error');
-  }
-};
+  }}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { T } from '../styles.js'; 
+import { TComponent} from '../styles.js'; 
 
 
  const RoleCard = ({ role, active, onClick, onDelete }) => (

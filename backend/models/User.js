@@ -22,19 +22,16 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Password is required'],
       minlength: [6, 'Password must be at least 6 characters'],
-      select: false, // never return password in queries
+      select: false,
     },
-   role: {
-  type: String,
-  default: 'viewer',
-  validate: {
-    validator: async function(value) {
-      const Role = mongoose.model('Role');
-      const role = await Role.findOne({ name: value });
-      return !!role;
+
+    // ✅ Step 1 — changed from String to ObjectId
+    role: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Role',   // ✅ links to Role collection
+      default: null, // ✅ pre-save hook will assign viewer
     },
-    message: (props) => `${props.value} is not a valid role`
-  }},
+
     isActive: {
       type: Boolean,
       default: true,
@@ -44,15 +41,24 @@ const userSchema = new mongoose.Schema(
       default: null,
     },
   },
-  {
-    timestamps: true, // adds createdAt and updatedAt automatically
-  }
+  { timestamps: true }
 );
 
 // Hash password before saving
 userSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) return next();
-  this.password = await bcrypt.hash(this.password, 12);
+  // 1. Hash password if modified
+  if (this.isModified('password')) {
+    this.password = await bcrypt.hash(this.password, 12);
+  }
+
+  // 2. ✅ Assign default 'viewer' role by ID if no role set
+  if (!this.role) {
+    const Role = mongoose.model('Role');
+    const defaultRole = await Role.findOne({ name: 'viewer' });
+    if (!defaultRole) return next(new Error('Default role "viewer" not found in DB'));
+    this.role = defaultRole._id;
+  }
+
   next();
 });
 

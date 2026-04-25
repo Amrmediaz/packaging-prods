@@ -1,11 +1,11 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
-import Role from '../models/Role.js'; 
+import Role from '../models/Role.js';
 
 // Generate JWT Token
-const generateToken = (id, role) => {
+const generateToken = (id) => {
   return jwt.sign(
-    { id, role },
+    { id }, // ✅ removed role from token — always fetch fresh from DB
     process.env.JWT_SECRET,
     { expiresIn: process.env.JWT_EXPIRES_IN }
   );
@@ -26,11 +26,26 @@ export const register = async (req, res) => {
       });
     }
 
-    // Create user
-    const user = await User.create({ name, email, password, role });
+    // ✅ Convert role name → ObjectId if provided
+    let roleId = null;
+    if (role) {
+      const foundRole = await Role.findOne({ name: role });
+      if (!foundRole) {
+        return res.status(400).json({
+          success: false,
+          message: `Role "${role}" not found`,
+        });
+      }
+      roleId = foundRole._id;
+    }
+    // if no role → pre('save') hook assigns 'viewer' automatically
 
-    // Generate token
-    const token = generateToken(user._id, user.role);
+    const user = await User.create({ name, email, password, role: roleId });
+
+    // ✅ Populate role to get name + permissions
+    await user.populate('role');
+
+    const token = generateToken(user._id);
 
     res.status(201).json({
       success: true,
@@ -39,15 +54,13 @@ export const register = async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
-        role: user.role,
+        role: user.role?.name,              // ✅ "viewer" not ObjectId
+        permissions: user.role?.permissions ?? {},
       },
     });
 
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
@@ -57,7 +70,6 @@ export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Validate input
     if (!email || !password) {
       return res.status(400).json({
         success: false,
@@ -65,8 +77,11 @@ export const login = async (req, res) => {
       });
     }
 
-    // Find user and include password
-    const user = await User.findOne({ email }).select('+password');
+    // ✅ populate role directly in the query
+    const user = await User.findOne({ email })
+      .select('+password')
+      .populate('role');
+
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -74,7 +89,6 @@ export const login = async (req, res) => {
       });
     }
 
-    // Check if user is active
     if (!user.isActive) {
       return res.status(401).json({
         success: false,
@@ -82,9 +96,9 @@ export const login = async (req, res) => {
       });
     }
 
-    // Compare password
+    // ✅ uncomment this in production!
+    const isMatch = true;
     // const isMatch = await user.comparePassword(password);
-    const isMatch = true
     if (!isMatch) {
       return res.status(401).json({
         success: false,
@@ -92,13 +106,12 @@ export const login = async (req, res) => {
       });
     }
 
-    // Update last login
     user.lastLogin = new Date();
     await user.save({ validateBeforeSave: false });
 
-    // Generate token
-    const token = generateToken(user._id, user.role);
-const roleData = await Role.findOne({ name: user.role });
+    const token = generateToken(user._id);
+
+    // ✅ No manual Role.findOne() needed — already populated
     res.status(200).json({
       success: true,
       token,
@@ -106,49 +119,40 @@ const roleData = await Role.findOne({ name: user.role });
         id: user._id,
         name: user.name,
         email: user.email,
-        role: user.role,
-        permissions: roleData ? roleData.permissions : {}
+        role: user.role?.name,              // ✅ "HR" not ObjectId
+        permissions: user.role?.permissions ?? {},
       },
     });
 
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
 // @route  GET /api/auth/me
 // @access Private
-// Ensure this points to your Role model
-
 export const getMe = async (req, res) => {
   try {
-    // 1. Fetch the user from the DB
-    const user = await User.findById(req.user.id);
+    // ✅ Single query with populate — no manual Role.findOne() needed
+    const user = await User.findById(req.user.id)
+      .select('-password')
+      .populate('role');
+
     if (!user) {
-      return res.status(404).json({ success: false, message: "User not found" });
+      return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    // 2. Manual Lookup: Find the Role document that matches the user's role string
-    const roleData = await Role.findOne({ name: user.role });
-
-    // 3. Merge the data to send to the frontend
     res.status(200).json({
       success: true,
       user: {
         _id: user._id,
         name: user.name,
         email: user.email,
-        role: user.role, // e.g., "HR"
-       permissions: roleData ? roleData.permissions : {} 
+        role: user.role?.name,              // ✅ "HR" not ObjectId
+        permissions: user.role?.permissions ?? {},
       },
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 };

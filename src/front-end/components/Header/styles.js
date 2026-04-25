@@ -17,6 +17,7 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: '12px',
+    marginLeft: '20px',
   },
   pageTitle: {
     color: '#f1f5f9',

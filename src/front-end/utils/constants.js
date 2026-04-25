@@ -13,7 +13,8 @@ export const ROUTES = {
   PRODUCTION: '/production',
   RolesPermissions : '/roles-permissions' ,
   Orders: '/orders',
-};
+  Products: '/products',
+}; 
 
 // Local storage keys
 export const STORAGE_KEYS = {

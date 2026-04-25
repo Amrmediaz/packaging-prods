@@ -1,80 +1,85 @@
-// import mongoose from 'mongoose';
+import mongoose from 'mongoose';
 
-// const OrderSchema = new mongoose.Schema({
-//   // Order ID - e.g., PKN-2026-001
-//   orderId: {
-//     type: String,
-//     unique: true,
-//     required: true,
-//     trim: true
-//   },
-//   client: {
-//     type: String,
-//     required: [true, 'Client name is required'],
-//     trim: true
-//   },
-//   // Packaging Details
-//   product: {
-//     type: String,
-//     required: true,
-//     enum: [
-//       'SOS Paper Bags (V-Shape)',
-//       'Luxury Corrugated Boxes',
-//       'Eco-Takeaway Trays',
-//       'Custom Branded Mailing Bags',
-//       'Heavy Duty Shipping Cartons'
-//     ]
-//   },
-//   quantity: {
-//     type: Number,
-//     required: true,
-//     min: [1, 'Quantity must be at least 1']
-//   },
-//   // Production Workflow Status
-//   status: {
-//     type: String,
-//     required: true,
-//     enum: ['Queue', 'Printing', 'Die-Cutting', 'Folding', 'Packing', 'Ready', 'Delivered'],
-//     default: 'Queue'
-//   },
-//   // Progress tracking (0 to 100)
-//   progress: {
-//     type: Number,
-//     default: 0,
-//     min: 0,
-//     max: 100
-//   },
-//   // Delivery/Deadline tracking
-//   dueDate: {
-//     type: Date,
-//     required: true
-//   },
-//   // Created By (Reference to the User who entered the order)
-//   createdBy: {
-//     type: mongoose.Schema.Types.ObjectId,
-//     ref: 'User',
-//     required: true
-//   },
-//   // Additional factory notes (e.g., "Ink code: Pantone 293C")
-//   notes: {
-//     type: String,
-//     trim: true
-//   }
-// }, {
-//   timestamps: true // Adds createdAt (Order Date) and updatedAt
-// });
+const OrderSchema = new mongoose.Schema({
+  // Order ID - e.g., PKN-1713444898 (using timestamp for uniqueness)
+  orderId: {
+    type: String,
+    unique: true,
+    required: true,
+    trim: true,
+    default: () => `PKN-${Math.floor(Date.now() / 1000)}`
+  },
+  name: {
+    type: String,
+    required: [true, 'name is required'],
+    trim: true
+  },
+  // Contact Details (Captured by n8n)
+  phone: {
+    type: String,
+    required: true
+  },
+  email: {
+    type: String,
+    required: true,
+    lowercase: true
+  },
+  // Packaging Details (Updated for Cup Focus)
+  product: {
+    type: String,
+    required: true,
+    // Flexible string to allow specific cup types from the website
+    trim: true
+  },
+  quantity: {
+    type: Number,
+    required: true,
+    min: [1, 'Quantity must be at least 1']
+  },
+  // Production Workflow Status
+  status: {
+    type: String,
+    required: false,
+    enum: ['Pending', 'Queue', 'Printing', 'Die-Cutting', 'Folding', 'Packing', 'Ready', 'Delivered'],
+    default: 'Pending'
+  },
+  progress: {
+    type: Number,
+    default: 0,
+    min: 0,
+    max: 100
+  },
+  // Automated deadline (e.g., 14 days from order)
+  dueDate: {
+    type: Date,
+    default: () => new Date(+new Date() + 14 * 24 * 60 * 60 * 1000)
+  },
+  // Optional: If you aren't using an Auth system for the n8n bot, 
+  // you might want to remove the 'required' constraint on createdBy
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: false 
+  },
+  notes: {
+    type: String,
+    trim: true
+  }
+}, {
+  timestamps: true 
+});
 
-// // Virtual for frontend compatibility (mapping _id to id)
-// OrderSchema.virtual('id').get(function() {
-//   return this._id.toHexString();
-// });
+// Virtual for frontend compatibility
+OrderSchema.virtual('id').get(function() {
+  return this._id.toHexString();
+});
 
-// OrderSchema.set('toJSON', {
-//   virtuals: true,
-//   versionKey: false,
-//   transform: function (doc, ret) { delete ret._id; }
-// });
+OrderSchema.set('toJSON', {
+  virtuals: true,
+  versionKey: false,
+  transform: function (doc, ret) { delete ret._id; }
+});
 
-// const Order = mongoose.model('Order', OrderSchema);
+const Order = mongoose.model('Order', OrderSchema);
 
-// export default Order;
+export default Order;

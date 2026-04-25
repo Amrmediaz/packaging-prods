@@ -17,7 +17,7 @@ export const ConfirmDeleteModal = ({ role, onCancel, onConfirm, loading }) => (
   </div>
 );
 
-// Add your Modal styles here or import from styles.js
+
 const modalOverlayStyle = { position: 'fixed', inset: 0, background: 'rgba(2,6,23,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000 };
 const confirmCardStyle = { background: T.card, padding: '30px', borderRadius: '15px', border: `1px solid ${T.danger}40`, maxWidth: '400px' };
 const secondaryBtn = { flex: 1, padding: '10px', cursor: 'pointer', background: T.cardHi, color: T.textSub, border: `1px solid ${T.border}` };

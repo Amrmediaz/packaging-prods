@@ -33,6 +33,7 @@ function Sidebar() {
         label: 'Operations',
         items: [
         can('dashboard', 'view') && { name: 'Dashboard', icon: '📊', path: ROUTES.DASHBOARD },
+        can('products', 'view') && { name: 'Products', icon: '📦', path: ROUTES.Products || '/products' },
        can('orders', 'view') && { name: 'Orders', icon: '🛒', path: ROUTES?.Orders || '/orders' },
         ].filter(Boolean),
       },
